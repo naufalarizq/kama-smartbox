@@ -1,0 +1,20 @@
+[wokwi]
+title = "KAMA Simulator - ESP32 Arduino"
+board = "esp32dev"
+framework = "arduino"
+
+[[wokwi.files]]
+path = "main1.py"
+role = "sketch"
+
+# Use this project by importing the folder into Wokwi or uploading as a ZIP.[wokwi]
+title = "KAMA Food Analysis Box - ESP32 (MicroPython)"
+board = "esp32dev"
+framework = "micropython"
+
+[[wokwi.files]]
+path = "main.py"
+
+# Notes:
+# - Ensure `main.py` in this folder contains the MicroPython code to run on the ESP32.
+# - To import into Wokwi use "Import from GitHub" pointing at this repo path, or upload a ZIP of this folder.
