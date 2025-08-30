@@ -4,7 +4,6 @@ import psycopg2
 import sys
 from psycopg2.extras import RealDictCursor
 
-
 app = Flask(__name__)
 
 # Configure via environment variables
@@ -15,7 +14,6 @@ DB_USER = os.getenv('DB_USER', 'postgres')
 DB_PASS = os.getenv('DB_PASS', 'satudua3')
 
 CONN_INFO = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user={DB_USER} password={DB_PASS}"
-
 
 print('PYTHON:', sys.executable)
 print('DB CONN:', CONN_INFO)
@@ -29,27 +27,30 @@ def ingest():
     if not data:
         return jsonify({'error': 'invalid json'}), 400
 
-    # Basic validation / defaults
+    # Ambil data dari request body
     battery = data.get('battery')
     temperature = data.get('temperature')
     humidity = data.get('humidity')
     gas_level = data.get('gas_level')
     ph_level = data.get('ph_level')
     status = data.get('status')
+    box_status = data.get('box_status', 'tertutup')  # default tertutup
+    expired_in_days = data.get('expired_in_days', None)  # boleh null
 
     try:
-        # Log incoming request for easier debugging
+        # Log incoming request untuk debugging
         print('Ingest from', request.remote_addr, 'payload=', data)
 
         conn = get_conn()
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO kama_readings (battery, temperature, humidity, gas_level, ph_level, status)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO generate_data 
+            (battery, temperature, humidity, gas_level, ph_level, status, box_status, expired_in_days)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id, recorded_at
             """,
-            (battery, temperature, humidity, gas_level, ph_level, status)
+            (battery, temperature, humidity, gas_level, ph_level, status, box_status, expired_in_days)
         )
         row = cur.fetchone()
         conn.commit()
@@ -60,7 +61,6 @@ def ingest():
     except Exception as e:
         print('Ingest error:', e)
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/')
 def index():
