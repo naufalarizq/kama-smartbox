@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 import os
 import psycopg2
 import sys
-from psycopg2.extras import RealDictCursor
 
 app = Flask(__name__)
 
@@ -27,15 +26,15 @@ def ingest():
     if not data:
         return jsonify({'error': 'invalid json'}), 400
 
-    # Ambil data dari request body
+    # Ambil semua field sesuai dengan tabel terbaru
+    jenis_makanan = data.get('jenis_makanan', 'fruits')  # default "fruits"
     battery = data.get('battery')
     temperature = data.get('temperature')
     humidity = data.get('humidity')
     gas_level = data.get('gas_level')
-    ph_level = data.get('ph_level')
     status = data.get('status')
-    box_status = data.get('box_status', 'tertutup')  # default tertutup
-    expired_in_days = data.get('expired_in_days', None)  # boleh null
+    expired_days = data.get('expired_days')
+    lid_status = data.get('lid_status', 'CLOSED')
 
     try:
         # Log incoming request untuk debugging
@@ -45,12 +44,14 @@ def ingest():
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO generate_data 
-            (battery, temperature, humidity, gas_level, ph_level, status, box_status, expired_in_days)
+            INSERT INTO kama_readings (
+                jenis_makanan, battery, temperature, humidity, gas_level, status, expired_days, lid_status
+            )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id, recorded_at
             """,
-            (battery, temperature, humidity, gas_level, ph_level, status, box_status, expired_in_days)
+            (jenis_makanan, battery, temperature, humidity, gas_level,
+             status, expired_days, lid_status)
         )
         row = cur.fetchone()
         conn.commit()

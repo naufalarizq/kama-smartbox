@@ -4,53 +4,90 @@ import time
 
 SERVER_URL = "http://localhost:5000/ingest"
 
-def determine_status(temp, hum, gas, ph):
+def calculate_expired_days(temp, hum, gas, status):
     """
-    Tentukan status dan expired berdasarkan kondisi lingkungan.
+    Hitung expired days menggunakan formula regresi linear.
+    Jika status = 'bad' maka expired_days = 0.
     """
-    # Default
+    # If clearly bad, treat as already expired
+    if status == "bad":
+        return 0
+
+    # Regression coefficients obtained from Dataset.csv (OLS):
+    # intercept = 8.63405920
+    # coef_temp  = 0.10805081
+    # coef_hum   = -0.0446278961
+    # coef_co2   = -0.00463152026
+    # Note: model R2 ~= 0.0107 (very low) — predictions are noisy; use as rough estimate only.
+    intercept = 8.63405920
+    coef_temp = 0.10805081
+    coef_hum = -0.0446278961
+    coef_co2 = -0.00463152026
+
+    days = intercept + (coef_temp * temp) + (coef_hum * hum) + (coef_co2 * gas)
+    # Clamp and round
+    days = max(0.0, days)
+    return round(days, 2)
+
+
+def determine_status(temp, hum, gas):
+    """
+    Tentukan status makanan berdasarkan threshold dari boxplot.
+    Status: good, warning, bad
+    """
+    # Use dataset statistics to set thresholds (based on provided percentiles and medians):
+    # - Temp: p75=24, p90=26
+    # - Hum : p75=68, p90=71
+    # - CO2 : p75=404, p90=410
+    # We'll treat values above p90 as 'bad', above p75 as 'warning'.
     status = "good"
-    expired_days = 7
-    
 
-    # Kondisi busuk total
-    if temp > 35 or hum > 90 or gas > 80 or ph < 4.0 or ph > 8.5:
-        status = "bad"
-        expired_days = 0
+    # Hard 'bad' thresholds (p90 or clearly dangerous)
+    if temp >= 26 or hum >= 72 or gas >= 410:
+        return "bad"
 
-    # Kondisi warning
-    elif temp > 30 or hum > 85 or gas > 50 or ph < 4.5 or ph > 8.0:
-        status = "warning"
-        expired_days = random.randint(1, 3)
+    # Warning thresholds (between p75 and p90)
+    if temp > 24 or hum > 68 or gas > 404:
+        # If one metric crosses warning boundary, mark warning.
+        # But if two metrics are moderately high, escalate to warning as well.
+        return "warning"
 
-    # Kondisi good
-    else:
-        status = "good"
-        expired_days = random.randint(5, 10)
+    # Combination check: two moderate signals -> warning
+    moderate_count = 0
+    if temp > 23:
+        moderate_count += 1
+    if hum > 65:
+        moderate_count += 1
+    if gas > 402:
+        moderate_count += 1
+    if moderate_count >= 2:
+        return "warning"
 
-    return status, expired_days
+    return status
 
 
 while True:
-    # Sensor dummy
+    # Sensor dummy (acak sesuai rentang boxplot)
     battery = random.randint(30, 100)
-    temp = round(random.uniform(20.0, 40.0), 2)
-    hum = round(random.uniform(40.0, 95.0), 2)
-    gas = round(random.uniform(0, 100), 2)
-    ph = round(random.uniform(3.0, 9.0), 2)
+    temp = round(random.uniform(18, 30), 2)
+    hum = round(random.uniform(40, 95), 2)
+    gas = round(random.uniform(395, 420), 2)
 
-    # Tentukan status & expired otomatis
-    status, expired_in_days = determine_status(temp, hum, gas, ph)
+    # Tentukan status
+    status = determine_status(temp, hum, gas)
+
+    # Hitung expired days dengan formula
+    expired_days = calculate_expired_days(temp, hum, gas, status)
 
     data = {
+        "jenis_makanan": "fruits",   # kolom baru sesuai tabel
         "battery": battery,
         "temperature": temp,
         "humidity": hum,
         "gas_level": gas,
-        "ph_level": ph,
         "status": status,
-        "box_status": random.choice(["terbuka", "tertutup"]),
-        "expired_in_days": expired_in_days
+        "expired_days": expired_days,
+        "lid_status": random.choice(["OPEN", "CLOSED"])
     }
 
     try:
@@ -60,4 +97,4 @@ while True:
     except Exception as e:
         print("⚠️ Error sending data:", e)
 
-    time.sleep(5)
+    time.sleep(3)
