@@ -37,7 +37,6 @@
 			}
 		}
 	},
-	"virtual-models": {"postgres-jdbc-198e6b3a9d7-62bddc8b625ff333":{"kama-server":{"public":{":kama_server":{"properties":{"erd.diagram.state":{"serialized":"\u003cdiagram version\u003d\"1\" name\u003d\"empty\" time\u003d\"202509060131\"\u003e\u003centities\u003e\u003cdata-source id\u003d\"postgres-jdbc-198e6b3a9d7-62bddc8b625ff333\"\u003e\u003centity id\u003d\"1\" name\u003d\"kama_server\" fq-name\u003d\"public.kama_server\" order\u003d\"0\" color-bg\u003d\"128,64,32\" x\u003d\"151\" y\u003d\"155\"\u003e\u003cpath name\u003d\"public\"/\u003e\u003cpath name\u003d\"kama-server\"/\u003e\u003c/entity\u003e\u003c/data-source\u003e\u003c/entities\u003e\u003crelations/\u003e\u003c/diagram\u003e"}}}}}}},
 	"connection-types": {
 		"dev": {
 			"name": "Development",
