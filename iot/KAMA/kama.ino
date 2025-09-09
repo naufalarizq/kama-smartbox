@@ -32,7 +32,8 @@ const int GREEN_LED = 27;
 // WiFi config
 const char* WIFI_SSID = "TP-Link_0B5E";
 const char* WIFI_PASS = "pondokAA2022";
-const char* SERVER_URL = "https://b3b032f2ac71.ngrok-free.app/predict"; // change to your server
+const char* PREDICT_URL = "https://b3b032f2ac71.ngrok-free.app/predict"; // untuk prediksi AI
+const char* INGEST_URL = "https://b3b032f2ac71.ngrok-free.app/ingest";  // untuk kirim data ke database
 
 // DHT setup
 #define DHT_TYPE DHT22
@@ -151,16 +152,17 @@ void loop() {
     mqRS = voltageToResistance(mqVoltage);
 
     String pred_label = "unknown";
+
     if (WiFi.status() == WL_CONNECTED) {
+      // Kirim data ke /predict (AI)
       HTTPClient http;
-      // http.setInsecure();
-      http.begin(SERVER_URL);
+      http.begin(PREDICT_URL);
       http.addHeader("Content-Type", "application/json");
-  StaticJsonDocument<256> doc;
-  doc["temperature"] = temperature;
-  doc["humidity"] = humidity;
-  doc["gas_level"] = gasADC;
-  doc["jenis_makanan"] = "fruits"; // Set jenis_makanan sesuai kebutuhan, bisa diganti
+      StaticJsonDocument<256> doc;
+      doc["temperature"] = temperature;
+      doc["humidity"] = humidity;
+      doc["gas_level"] = gasADC;
+      doc["jenis_makanan"] = "fruits";
       String payload;
       serializeJson(doc, payload);
       int httpCode = http.POST(payload);
@@ -178,6 +180,26 @@ void loop() {
         Serial.print("HTTP error: "); Serial.println(httpCode);
       }
       http.end();
+
+      // Kirim data ke /ingest (database)
+      HTTPClient http2;
+      http2.begin(INGEST_URL);
+      http2.addHeader("Content-Type", "application/json");
+      StaticJsonDocument<256> doc2;
+      doc2["battery"] = 100; // ganti dengan pembacaan battery jika ada
+      doc2["temperature"] = temperature;
+      doc2["humidity"] = humidity;
+      doc2["gas_level"] = gasADC;
+      doc2["status"] = pred_label;
+      String payload2;
+      serializeJson(doc2, payload2);
+      int httpCode2 = http2.POST(payload2);
+      if (httpCode2 == 201) {
+        Serial.println("Data berhasil dikirim ke database (kama_realtime)");
+      } else {
+        Serial.print("HTTP error (ingest): "); Serial.println(httpCode2);
+      }
+      http2.end();
     } else {
       Serial.println("WiFi not connected, skipping prediction");
     }

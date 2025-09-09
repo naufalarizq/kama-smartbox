@@ -89,7 +89,7 @@ def predict():
 # Configure via environment variables
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = int(os.getenv('DB_PORT', 5432))
-DB_NAME = os.getenv('DB_NAME', 'kama')
+DB_NAME = os.getenv('DB_NAME', 'kama-realtime')
 DB_USER = os.getenv('DB_USER', 'postgres')
 DB_PASS = os.getenv('DB_PASS', 'satudua3')
 
@@ -107,15 +107,12 @@ def ingest():
     if not data:
         return jsonify({'error': 'invalid json'}), 400
 
-    # Ambil semua field sesuai dengan tabel terbaru
-    jenis_makanan = data.get('jenis_makanan', 'fruits')  # default "fruits"
+    # Ambil field untuk kama_realtime
     battery = data.get('battery')
     temperature = data.get('temperature')
     humidity = data.get('humidity')
     gas_level = data.get('gas_level')
     status = data.get('status')
-    expired_days = data.get('expired_days')
-    lid_status = data.get('lid_status', 'CLOSED')
 
     try:
         # Log incoming request untuk debugging
@@ -125,14 +122,13 @@ def ingest():
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO kama_readings (
-                jenis_makanan, battery, temperature, humidity, gas_level, status, expired_days, lid_status
+            INSERT INTO kama_realtime (
+                battery, temperature, humidity, gas_level, status
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s)
             RETURNING id, recorded_at
             """,
-            (jenis_makanan, battery, temperature, humidity, gas_level,
-             status, expired_days, lid_status)
+            (battery, temperature, humidity, gas_level, status)
         )
         row = cur.fetchone()
         conn.commit()

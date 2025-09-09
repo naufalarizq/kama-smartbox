@@ -1,1 +1,1 @@
-{"resources":{"Scripts/Script.sql":{"default-schema":"public","default-datasource":"postgres-jdbc-198e6b3a9d7-62bddc8b625ff333","default-catalog":"kama-server"}}}
+{"resources":{"Scripts/Script.sql":{"default-schema":"public","default-datasource":"postgres-jdbc-198e6b3a9d7-62bddc8b625ff333","default-catalog":"kama-realtime"}}}
