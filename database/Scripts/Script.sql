@@ -5,13 +5,14 @@ CREATE TABLE IF NOT EXISTS kama_realtime (
     temperature REAL,
     humidity REAL,
     gas_level REAL,
-    lid_status VARCHAR(10) CHECK (lid_status IN ('OPEN', 'CLOSED'))
+    status VARCHAR(20)
 );
 
 CREATE INDEX IF NOT EXISTS idx_kama_realtime_recorded_at 
 ON kama_realtime(recorded_at);
 
 DROP TABLE IF EXISTS kama_realtime;
+
 
 CREATE TABLE IF NOT EXISTS kama_server (
     id SERIAL PRIMARY KEY,
@@ -22,8 +23,7 @@ CREATE TABLE IF NOT EXISTS kama_server (
     humidity REAL,
     gas_level REAL,
     status VARCHAR(20),
-    expired_days INTEGER,
-    lid_status VARCHAR(10) CHECK (lid_status IN ('OPEN', 'CLOSED'))
+    predicted_spoil REAL
 );
 
 CREATE INDEX IF NOT EXISTS idx_kama_server_recorded_at 
