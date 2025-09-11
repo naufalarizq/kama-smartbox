@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS kama_realtime (
 CREATE INDEX IF NOT EXISTS idx_kama_realtime_recorded_at 
 ON kama_realtime(recorded_at);
 
-DROP TABLE IF EXISTS kama_realtime;
+DROP TABLE IF EXISTS kama_server;
 
 
 CREATE TABLE IF NOT EXISTS kama_server (
@@ -28,5 +28,11 @@ CREATE TABLE IF NOT EXISTS kama_server (
 
 CREATE INDEX IF NOT EXISTS idx_kama_server_recorded_at 
 ON kama_server(recorded_at);
+
+ALTER TABLE kama_server
+ADD recommendation_text VARCHAR(255);
+
+ALTER TABLE kama_server
+ALTER COLUMN recommendation_text TYPE TEXT;
 
 
