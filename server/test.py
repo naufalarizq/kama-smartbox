@@ -1,5 +1,9 @@
 import psycopg2
 import os
+import random
+import requests
+import joblib
+import pandas as pd
 from dotenv import load_dotenv
 
 # --- Konfigurasi Koneksi Database (sama seperti di app.py) ---
@@ -18,15 +22,86 @@ def insert_test_data():
     """
     Fungsi untuk memasukkan 5 baris data contoh ke tabel kama_realtime.
     """
-    # Data contoh (battery, temperature, humidity, gas_level, status)
-    # Termasuk status 'bad' untuk memicu logika LLM
-    test_data = [
-        (98.5, 25.1, 60.2, 350, 'good'),
-        (95.0, 26.5, 65.8, 450, 'warning'),
-        (92.3, 28.2, 70.1, 600, 'bad'),    # Data 'bad' untuk tes LLM
-        (90.1, 24.8, 62.5, 380, 'good'),
-        (88.7, 29.0, 75.3, 750, 'bad')     # Data 'bad' untuk tes LLM
-    ]
+    # Generate 5 baris data acak (battery, temperature, humidity, gas_level, status)
+    statuses = ['good', 'warning', 'bad']
+    weights = [0.6, 0.25, 0.15]  # lebih sering 'good', sedikit 'bad'
+    test_data = []
+    # Utility: try server API first, if unavailable fall back to local model
+    MODEL_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../ai/models/xgb_status_model.pkl'))
+
+    def predict_via_api(temp, hum, gas, jenis='fruits'):
+        try:
+            resp = requests.post('http://localhost:5000/predict', json={
+                'temperature': temp,
+                'humidity': hum,
+                'gas_level': gas,
+                'jenis_makanan': jenis
+            }, timeout=2)
+            if resp.status_code == 200:
+                data = resp.json()
+                return data.get('label')
+        except Exception:
+            return None
+
+    def load_local_model(path):
+        try:
+            loaded = joblib.load(path)
+            # If dict-like, try to find an object with predict
+            if isinstance(loaded, dict):
+                for key in ['model','models','estimator','clf']:
+                    if key in loaded and hasattr(loaded[key], 'predict'):
+                        return loaded[key]
+                # fallback: search values
+                for v in loaded.values():
+                    if hasattr(v, 'predict'):
+                        return v
+                return None
+            return loaded
+        except Exception:
+            return None
+
+    def predict_local(model, temp, hum, gas, jenis='fruits'):
+        try:
+            X = pd.DataFrame([{'temperature': temp, 'humidity': hum, 'gas_level': gas, 'jenis_makanan': jenis}])
+            pred_idx = model.predict(X)[0]
+            label = None
+            if hasattr(model, 'classes_'):
+                label = str(model.classes_[pred_idx])
+            elif hasattr(model, 'named_steps') and 'clf' in model.named_steps and hasattr(model.named_steps['clf'], 'classes_'):
+                label = str(model.named_steps['clf'].classes_[pred_idx])
+            if label is None or (isinstance(label, str) and label.isdigit()):
+                label_map = {0: 'bad', 1: 'good', 2: 'warning'}
+                try:
+                    label = label_map.get(int(pred_idx), str(pred_idx))
+                except Exception:
+                    label = str(pred_idx)
+            return label
+        except Exception:
+            return None
+
+    # try loading local model once
+    local_model = load_local_model(MODEL_PATH)
+
+    for _ in range(5):
+        battery = random.randint(80, 100)
+        temperature = round(random.uniform(20.0, 30.0), 1)
+        humidity = round(random.uniform(40.0, 90.0), 1)
+        gas_level = round(random.uniform(200.0, 900.0), 1)
+
+        # 1) Try API
+        status = predict_via_api(temperature, humidity, gas_level)
+        method = 'api'
+        # 2) Fallback to local model
+        if status is None and local_model is not None:
+            status = predict_local(local_model, temperature, humidity, gas_level)
+            method = 'local'
+        # 3) Final fallback: random based on weights
+        if status is None:
+            status = random.choices(statuses, weights)[0]
+            method = 'random'
+
+        test_data.append((battery, temperature, humidity, gas_level, status))
+        print(f"Generated row: temp={temperature}, hum={humidity}, gas={gas_level}, status={status} (via {method})")
 
     conn = None
     try:

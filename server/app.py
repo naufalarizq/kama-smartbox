@@ -280,24 +280,26 @@ def run_spoil_prediction_job():
 
         # 2. Ambil data yang baru dimasukkan untuk prediksi dan rekomendasi
         print(f"[Scheduler] Mengambil {len(new_ids)} baris baru dari kama_server untuk diproses.")
+        # Hanya proses baris paling terakhir yang ditransfer pada run ini
         with server_conn.cursor() as server_cur_select:
-            # Menggunakan tuple untuk klausa IN
+            # Menggunakan tuple untuk klausa IN, lalu ambil yang paling akhir berdasarkan recorded_at
             server_cur_select.execute(
-                "SELECT id, temperature, humidity, gas_level, status, jenis_makanan FROM kama_server WHERE id IN %s",
+                "SELECT id, temperature, humidity, gas_level, status, jenis_makanan FROM kama_server WHERE id IN %s ORDER BY recorded_at DESC LIMIT 1",
                 (tuple(new_ids),)
             )
             rows_to_process = server_cur_select.fetchall()
 
         # 3. Lakukan prediksi, panggil LLM jika perlu, dan siapkan update
+        print(f"[Scheduler] Jumlah baris yang akan diproses untuk prediksi/LLM: {len(rows_to_process)}")
         spoil_model = get_spoil_model()
-        
+
         # Buat DataFrame untuk kemudahan prediksi
         df_to_predict = pd.DataFrame(rows_to_process, columns=['id', 'temperature', 'humidity', 'gas_level', 'status', 'jenis_makanan'])
-        
+
         # Pastikan kolom yang dibutuhkan model ada
         features = ['temperature', 'humidity', 'gas_level', 'jenis_makanan']
         X_predict = df_to_predict[features]
-        
+
         print(f"[Scheduler] Melakukan prediksi 'predicted_spoil' untuk {len(X_predict)} baris.")
         predictions = spoil_model.predict(X_predict)
         df_to_predict['predicted_spoil'] = predictions
@@ -314,10 +316,10 @@ def run_spoil_prediction_job():
                 spoil_info = f"Prediksi waktu busuk adalah {row['predicted_spoil']:.2f} hari."
                 # Default 'fruits' jika jenis_makanan adalah None atau kosong
                 food_type = row['jenis_makanan'] if row['jenis_makanan'] else 'buah-buahan'
-                
+
                 recommendation = get_llm_recommendation(food_type, spoil_info)
                 print(f"[Scheduler] Rekomendasi diterima untuk id: {row['id']}.")
-            
+
             update_data.append((row['predicted_spoil'], recommendation, row['id']))
 
         # 4. Lakukan update batch ke database
@@ -327,7 +329,7 @@ def run_spoil_prediction_job():
                 execute_batch(server_cur_update, update_query, update_data)
                 server_conn.commit()
             print("[Scheduler] Batch update berhasil.")
-        
+
         print("[Scheduler] Semua proses untuk data baru telah selesai.")
 
     except Exception as e:
