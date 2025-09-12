@@ -15,6 +15,35 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+"""
+Helper konfigurasi: baca kredensial dari st.secrets (Streamlit Cloud) terlebih dahulu,
+fallback ke variabel environment (.env) dan default hard-coded.
+"""
+
+def _get_secrets_section(*names):
+    """Ambil dict secrets pertama yang tersedia dari daftar nama section."""
+    try:
+        for name in names:
+            try:
+                sec = st.secrets.get(name)  # type: ignore[attr-defined]
+            except Exception:
+                sec = None
+            if isinstance(sec, dict) and sec:
+                return sec
+    except Exception:
+        pass
+    return None
+
+def _get_secret_value(key, default=None):
+    """Ambil nilai dari st.secrets (top-level) atau os.environ."""
+    try:
+        val = st.secrets.get(key)  # type: ignore[attr-defined]
+        if val is not None:
+            return val
+    except Exception:
+        pass
+    return os.getenv(key, default)
+
 # --- Fungsi Koneksi Database ---
 # Menggunakan st.cache_resource agar koneksi di-cache dan tidak dibuat ulang setiap interaksi
 @st.cache_resource
@@ -22,19 +51,28 @@ def get_db_connection():
     """Membuat koneksi ke database kama_server."""
     load_dotenv(os.path.join(os.path.dirname(__file__), '../server/.env'))
 
-    host = os.getenv("SERVER_DB_HOST", "localhost")
-    port = int(os.getenv("SERVER_DB_PORT", 5432))
-    user = os.getenv("SERVER_DB_USER", "postgres")
-    password = os.getenv("SERVER_DB_PASS", "satudua3")
+    # Prefer secrets: realtime_db -> db -> postgres -> database
+    sec = _get_secrets_section("realtime_db", "db", "postgres", "database")
+    host = (sec.get("host") if sec else None) or _get_secret_value("SERVER_DB_HOST", "localhost")
+    port = int((sec.get("port") if sec else None) or _get_secret_value("SERVER_DB_PORT", 5432))
+    user = (sec.get("user") if sec else None) or _get_secret_value("SERVER_DB_USER", "postgres")
+    password = (sec.get("password") if sec else None) or _get_secret_value("SERVER_DB_PASS", "satudua3")
 
-    # Build list of candidate database names to try (order: explicit server var, common names, fallback)
+    # Build list of candidate database names to try (order: secrets, server var, common names, fallback)
     candidates = []
-    if os.getenv("SERVER_DB_NAME"):
-        candidates.append(os.getenv("SERVER_DB_NAME"))
-    if os.getenv("DB_NAME"):
-        candidates.append(os.getenv("DB_NAME"))
+    # from secrets section
+    if sec:
+        for key in ("dbname", "database", "name"):
+            if sec.get(key):
+                candidates.append(str(sec.get(key)))
+                break
+    # from environment
+    if _get_secret_value("SERVER_DB_NAME"):
+        candidates.append(_get_secret_value("SERVER_DB_NAME"))
+    if _get_secret_value("DB_NAME"):
+        candidates.append(_get_secret_value("DB_NAME"))
     # common names used in project
-    candidates.extend(["kama-server", "kama-realtime", "kama-realtime".replace('-', '_')])
+    candidates.extend(["kama-realtime", "kama_realtime", "kama-server", "kama_server"])
 
     last_err = None
     for dbname in candidates:
@@ -72,16 +110,25 @@ def get_server_db_connection():
     """
     load_dotenv(os.path.join(os.path.dirname(__file__), '../server/.env'))
 
-    host = os.getenv("SERVER_DB_HOST", "localhost")
-    port = int(os.getenv("SERVER_DB_PORT", 5432))
-    user = os.getenv("SERVER_DB_USER", "postgres")
-    password = os.getenv("SERVER_DB_PASS", "satudua3")
+    # Prefer secrets: server_db -> db -> postgres -> database
+    sec = _get_secrets_section("server_db", "db", "postgres", "database")
+    host = (sec.get("host") if sec else None) or _get_secret_value("SERVER_DB_HOST", "localhost")
+    port = int((sec.get("port") if sec else None) or _get_secret_value("SERVER_DB_PORT", 5432))
+    user = (sec.get("user") if sec else None) or _get_secret_value("SERVER_DB_USER", "postgres")
+    password = (sec.get("password") if sec else None) or _get_secret_value("SERVER_DB_PASS", "satudua3")
 
     candidates = []
-    if os.getenv("SERVER_DB_NAME"):
-        candidates.append(os.getenv("SERVER_DB_NAME"))
-    if os.getenv("DB_NAME"):
-        candidates.append(os.getenv("DB_NAME"))
+    # from secrets section
+    if sec:
+        for key in ("dbname", "database", "name"):
+            if sec.get(key):
+                candidates.append(str(sec.get(key)))
+                break
+    # from environment
+    if _get_secret_value("SERVER_DB_NAME"):
+        candidates.append(_get_secret_value("SERVER_DB_NAME"))
+    if _get_secret_value("DB_NAME"):
+        candidates.append(_get_secret_value("DB_NAME"))
     candidates.extend(["kama-server", "kama_server"])
 
     last_err = None
@@ -292,11 +339,11 @@ else:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"]) 
 
-        # Ambil API Key untuk Gemini (opsional)
+        # Ambil API Key untuk Gemini (opsional) dari st.secrets lalu .env
         GEMINI_API_KEY = None
         try:
-            load_dotenv(os.path.join(os.path.dirname(__file__), '../server/.env'))
-            GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+            # coba dari secrets dulu
+            GEMINI_API_KEY = _get_secret_value("GEMINI_API_KEY")
             if GEMINI_API_KEY:
                 genai.configure(api_key=GEMINI_API_KEY)
         except Exception:
