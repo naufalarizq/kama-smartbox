@@ -60,6 +60,7 @@ def get_db_connection():
     port = int((sec.get("port") if sec else None) or _get_secret_value("SERVER_DB_PORT", 5432))
     user = (sec.get("user") if sec else None) or _get_secret_value("SERVER_DB_USER", "postgres")
     password = (sec.get("password") if sec else None) or _get_secret_value("SERVER_DB_PASS", "satudua3")
+    sslmode = (sec.get("sslmode") if sec else None) or _get_secret_value("SERVER_DB_SSLMODE")
 
     # Build list of candidate database names to try (order: secrets, server var, common names, fallback)
     candidates = []
@@ -82,7 +83,10 @@ def get_db_connection():
         if dbname in (None, ''):
             continue
         try:
-            conn = psycopg2.connect(host=host, port=port, dbname=dbname, user=user, password=password)
+            kwargs = dict(host=host, port=port, dbname=dbname, user=user, password=password)
+            if sslmode:
+                kwargs["sslmode"] = sslmode
+            conn = psycopg2.connect(**kwargs)
             # quick check: does table kama_realtime exist in this DB?
             with conn.cursor() as cur:
                 try:
@@ -119,6 +123,7 @@ def get_server_db_connection():
     port = int((sec.get("port") if sec else None) or _get_secret_value("SERVER_DB_PORT", 5432))
     user = (sec.get("user") if sec else None) or _get_secret_value("SERVER_DB_USER", "postgres")
     password = (sec.get("password") if sec else None) or _get_secret_value("SERVER_DB_PASS", "satudua3")
+    sslmode = (sec.get("sslmode") if sec else None) or _get_secret_value("SERVER_DB_SSLMODE")
 
     candidates = []
     # from secrets section
@@ -139,7 +144,10 @@ def get_server_db_connection():
         if dbname in (None, ''):
             continue
         try:
-            conn = psycopg2.connect(host=host, port=port, dbname=dbname, user=user, password=password)
+            kwargs = dict(host=host, port=port, dbname=dbname, user=user, password=password)
+            if sslmode:
+                kwargs["sslmode"] = sslmode
+            conn = psycopg2.connect(**kwargs)
             with conn.cursor() as cur:
                 try:
                     cur.execute("SELECT 1 FROM kama_server LIMIT 1;")
