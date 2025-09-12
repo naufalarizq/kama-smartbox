@@ -1,4 +1,7 @@
-import psycopg2
+try:
+    import psycopg2
+except ModuleNotFoundError:
+    import psycopg as psycopg2  # type: ignore
 import os
 import random
 import requests

@@ -35,4 +35,14 @@ ADD recommendation_text VARCHAR(255);
 ALTER TABLE kama_server
 ALTER COLUMN recommendation_text TYPE TEXT;
 
+ALTER TABLE kama_realtime ADD COLUMN device_id VARCHAR(64);
+ALTER TABLE kama_server   ADD COLUMN device_id VARCHAR(64);
+
+CREATE TABLE devices (
+  id          SERIAL PRIMARY KEY,
+  device_id   VARCHAR(64) UNIQUE NOT NULL, -- isi dari QR (mis. UUID)
+  name        TEXT,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
 
