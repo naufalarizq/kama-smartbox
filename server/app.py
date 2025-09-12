@@ -1,11 +1,17 @@
 from flask import Flask, request, jsonify
 from apscheduler.schedulers.background import BackgroundScheduler
 import pandas as pd
-from psycopg2.extras import execute_values, execute_batch
+try:
+    from psycopg2.extras import execute_values, execute_batch
+except ModuleNotFoundError:
+    from psycopg.extras import execute_values, execute_batch  # type: ignore
 from dotenv import load_dotenv
 
 import os
-import psycopg2
+try:
+    import psycopg2
+except ModuleNotFoundError:
+    import psycopg as psycopg2  # type: ignore
 import sys
 import joblib
 import numpy as np

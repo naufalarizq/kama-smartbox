@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
-import psycopg2
+try:
+    import psycopg2  # Prefer psycopg2 if available
+except ModuleNotFoundError:  # Fallback to psycopg (v3)
+    import psycopg as psycopg2  # type: ignore
 import os
 import plotly.express as px
 import time
