@@ -21,6 +21,15 @@ DB_PASS = os.getenv('DB_PASS', 'satudua3')
 
 CONN_INFO = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user={DB_USER} password={DB_PASS}"
 
+# -----------------------------------------------------------------------------
+# Mode penentuan status
+#   - interactive: minta input status dari user per baris (good/warning/bad)
+#   - auto: gunakan urutan (API / model lokal / acak)
+#   - fixed: gunakan MANUAL_STATUS di bawah untuk semua baris
+# -----------------------------------------------------------------------------
+MODE = os.getenv('TEST_MODE', 'interactive').lower()  # 'interactive' | 'auto' | 'fixed'
+MANUAL_STATUS = os.getenv('TEST_MANUAL_STATUS')  # digunakan jika MODE == 'fixed'
+
 def insert_test_data():
     """
     Fungsi untuk memasukkan 5 baris data contoh ke tabel kama_realtime.
@@ -85,23 +94,51 @@ def insert_test_data():
     # try loading local model once
     local_model = load_local_model(MODEL_PATH)
 
-    for _ in range(5):
+    # snapshot mode and manual status into local variables to avoid global reassignment issues
+    mode = (MODE or 'interactive').lower()
+    manual_status = (MANUAL_STATUS or '').strip().lower() if MANUAL_STATUS else None
+
+    for i in range(1):
         battery = random.randint(80, 100)
         temperature = round(random.uniform(20.0, 30.0), 1)
         humidity = round(random.uniform(40.0, 90.0), 1)
         gas_level = round(random.uniform(200.0, 900.0), 1)
 
-        # 1) Try API
-        status = predict_via_api(temperature, humidity, gas_level)
-        method = 'api'
-        # 2) Fallback to local model
-        if status is None and local_model is not None:
-            status = predict_local(local_model, temperature, humidity, gas_level)
-            method = 'local'
-        # 3) Final fallback: random based on weights
-        if status is None:
-            status = random.choices(statuses, weights)[0]
-            method = 'random'
+        status = None
+        method = None
+
+        if mode == 'interactive':
+            # Minta input dari user, validasi, ulangi jika perlu
+            while True:
+                try:
+                    user_in = input(f"[{i+1}/5] Masukkan status (good/warning/bad) atau kosong untuk 'good': ").strip().lower()
+                except Exception:
+                    user_in = ''
+                if user_in == '':
+                    user_in = 'good'
+                if user_in in statuses:
+                    status = user_in
+                    method = 'user'
+                    break
+                else:
+                    print(f"Input tidak valid. Pilihan: {statuses}")
+        elif mode == 'fixed':
+            if manual_status in statuses:
+                status = manual_status
+                method = 'manual'
+            else:
+                print(f"Peringatan: TEST_MANUAL_STATUS '{MANUAL_STATUS}' tidak valid. Gunakan salah satu dari {statuses}. Beralih ke mode 'auto'.")
+                mode = 'auto'
+
+        if mode == 'auto' and status is None:
+            status = predict_via_api(temperature, humidity, gas_level)
+            method = 'api'
+            if status is None and local_model is not None:
+                status = predict_local(local_model, temperature, humidity, gas_level)
+                method = 'local'
+            if status is None:
+                status = random.choices(statuses, weights)[0]
+                method = 'random'
 
         test_data.append((battery, temperature, humidity, gas_level, status))
         print(f"Generated row: temp={temperature}, hum={humidity}, gas={gas_level}, status={status} (via {method})")

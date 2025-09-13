@@ -195,6 +195,29 @@ def index():
 def health():
     return jsonify({'status': 'ok'})
 
+# --- Endpoint untuk ESP32: Ambil status terbaru ---
+@app.route('/latest_status', methods=['GET'])
+def latest_status():
+    try:
+        conn = get_conn()
+        cur = conn.cursor()
+        cur.execute("SELECT status, recorded_at FROM kama_realtime ORDER BY recorded_at DESC LIMIT 1")
+        row = cur.fetchone()
+        cur.close()
+        conn.close()
+        if not row:
+            return jsonify({
+                'status': None,
+                'recorded_at': None,
+                'message': 'No data available'
+            }), 404
+        return jsonify({
+            'status': row[0],
+            'recorded_at': row[1].isoformat()
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # --- Endpoint baru untuk Dashboard ---
 # Konfigurasi untuk database kama_server
 SERVER_DB_CONFIG = {
