@@ -6,6 +6,7 @@ try:
 except ModuleNotFoundError:
     from psycopg.extras import execute_values, execute_batch  # type: ignore
 from dotenv import load_dotenv
+import configparser
 
 import os
 try:
@@ -24,6 +25,13 @@ app = Flask(__name__)
 
 # --- Konfigurasi Kunci API ---
 load_dotenv()
+# Also parse server/.env as INI to support sections like [realtime_db] and [server_db]
+_ENV_INI = configparser.ConfigParser()
+try:
+    _ENV_INI.read(os.path.join(os.path.dirname(__file__), '.env'))
+except Exception:
+    pass
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     # Konfigurasi library genai secara global saat aplikasi dimulai
@@ -108,17 +116,63 @@ def predict():
     print(f"Predict: input={X.to_dict(orient='records')} label={label}")
     return jsonify({'label': label})
 
-# Configure via environment variables
-DB_HOST = os.getenv('DB_HOST', 'localhost')
-DB_PORT = int(os.getenv('DB_PORT', 5432))
-DB_NAME = os.getenv('DB_NAME', 'kama-realtime')
-DB_USER = os.getenv('DB_USER', 'postgres')
-DB_PASS = os.getenv('DB_PASS', 'satudua3')
+def _get_ini_value(section: str, key: str):
+    try:
+        if _ENV_INI.has_section(section) and _ENV_INI.has_option(section, key):
+            return _ENV_INI.get(section, key)
+        # also support DEFAULT/global options if user didn't add sections
+        if section is None and _ENV_INI.defaults() and key in _ENV_INI.defaults():
+            return _ENV_INI.defaults().get(key)
+    except Exception:
+        return None
+    return None
 
-CONN_INFO = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user={DB_USER} password={DB_PASS}"
+def _resolve_db_config(primary_section: str, env_prefix: str, fallback_section: str | None = None):
+    """Resolve DB config from .env INI sections and environment variables.
+    Order: primary section -> fallback section -> environment variables (env_prefix) -> generic DB_* as last resort.
+    """
+    cfg = {}
+    for key in ["host", "port", "user", "password", "dbname", "sslmode"]:
+        # 1) Read from INI section
+        val = _get_ini_value(primary_section, key)
+        if val is None and fallback_section:
+            val = _get_ini_value(fallback_section, key)
+        # 2) Environment variables with explicit prefix (e.g., SERVER_DB_HOST)
+        if val is None:
+            env_key_specific = f"{env_prefix}_{key.upper()}"
+            val = os.getenv(env_key_specific)
+        # 3) Generic DB_* (e.g., DB_HOST)
+        if val is None:
+            val = os.getenv(f"DB_{key.upper()}")
+        # 4) Bare env vars possibly loaded by python-dotenv (e.g., host, user)
+        if val is None:
+            val = os.getenv(key) or os.getenv(key.upper())
+        if key == "port" and val is not None:
+            try:
+                val = int(val)
+            except Exception:
+                pass
+        cfg[key] = val
+    return cfg
+
+# Resolve realtime DB config (from [realtime_db] or env DB_*)
+REALTIME_DB_CONFIG = _resolve_db_config("realtime_db", env_prefix="DB", fallback_section=None)
+# Resolve server DB config (from [server_db], fallback to [realtime_db], then env SERVER_DB_* / DB_*)
+SERVER_DB_CONFIG = _resolve_db_config("server_db", env_prefix="SERVER_DB", fallback_section="realtime_db")
+
+# Build connection string for realtime (mask password in logs)
+DB_HOST = REALTIME_DB_CONFIG.get('host') or 'localhost'
+DB_PORT = int(REALTIME_DB_CONFIG.get('port') or 5432)
+DB_NAME = REALTIME_DB_CONFIG.get('dbname') or 'kama-realtime'
+DB_USER = REALTIME_DB_CONFIG.get('user') or 'postgres'
+DB_PASS = REALTIME_DB_CONFIG.get('password') or ''
+DB_SSLMODE = REALTIME_DB_CONFIG.get('sslmode')
+
+CONN_INFO = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user={DB_USER} password={DB_PASS}" + (f" sslmode={DB_SSLMODE}" if DB_SSLMODE else "")
 
 print('PYTHON:', sys.executable)
-print('DB CONN:', CONN_INFO)
+_masked_pass = '***' if DB_PASS else ''
+print('DB CONN:', f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user={DB_USER} password={_masked_pass}" + (f" sslmode={DB_SSLMODE}" if DB_SSLMODE else ""))
 
 # --- Fungsi Helper untuk LLM (Diperbarui) ---
 def get_llm_recommendation(food_type: str, spoil_info: str) -> str:
@@ -219,14 +273,8 @@ def latest_status():
         return jsonify({'error': str(e)}), 500
 
 # --- Endpoint baru untuk Dashboard ---
-# Konfigurasi untuk database kama_server
-SERVER_DB_CONFIG = {
-    "host": os.getenv("SERVER_DB_HOST", "localhost"),
-    "port": int(os.getenv("SERVER_DB_PORT", 5432)),
-    "dbname": os.getenv("SERVER_DB_NAME", "kama-server"),
-    "user": os.getenv("SERVER_DB_USER", "postgres"),
-    "password": os.getenv("SERVER_DB_PASS", "satudua3"),
-}
+# SERVER_DB_CONFIG already resolved above; ensure sslmode type is string if present
+SERVER_DB_SSLMODE = SERVER_DB_CONFIG.get("sslmode")
 
 # --- Logic untuk Scheduled Job (dari process_spoil_prediction.py) ---
 
