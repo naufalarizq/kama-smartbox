@@ -40,7 +40,7 @@ if GEMINI_API_KEY:
 else:
     print("PERINGATAN: GEMINI_API_KEY tidak ditemukan di environment. Fitur rekomendasi LLM akan dinonaktifkan.")
 
-MODEL_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../ai/models/xgb_status_model.pkl'))
+MODEL_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), 'ai\models\xgb_status_model.pkl'))
 _model = None
 _model_lock = Lock()
 
@@ -278,7 +278,7 @@ SERVER_DB_SSLMODE = SERVER_DB_CONFIG.get("sslmode")
 
 # --- Logic untuk Scheduled Job (dari process_spoil_prediction.py) ---
 
-SPOIL_MODEL_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../ai/models/xgb_predicted_spoiled.pkl'))
+SPOIL_MODEL_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), 'ai\models\xgb_predicted_spoiled.pkl'))
 _spoil_model = None
 _spoil_model_lock = Lock()
 
