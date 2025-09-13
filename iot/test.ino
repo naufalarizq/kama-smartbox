@@ -12,7 +12,7 @@ const char* WIFI_PASSWORD = "098767890";
 
 // URL of your Flask server (must be reachable from ESP32)
 // Example: "http://192.168.1.10:5000/latest_status"
-String LATEST_STATUS_URL = "https://ddb407d35f04.ngrok-free.app/latest_status";
+String LATEST_STATUS_URL = "kama-smartbox-production.up.railway.app/latest_status";
 
 // Choose your LED hardware style:
 // - If you use a traffic-light style module (Red/Yellow/Green separate), set USE_RYG_MODULE = true
