@@ -40,7 +40,7 @@ def get_realtime_conn():
             port=int(_get_secret_value("REALTIME_DB_PORT", 5432)),
             dbname=_get_secret_value("REALTIME_DB_NAME", "railway"),
             user=_get_secret_value("REALTIME_DB_USER", "postgres"),
-            password=_get_secret_value("REALTIME_DB_PASS", "hqEtmRvshgrqoamfRkwwwTCoLNSxLelU"),
+            password=_get_secret_value("REALTIME_DB_PASS", "password"),
             # sslmode=_get_secret_value("REALTIME_DB_SSLMODE", "prefer"),
         )
         return conn
@@ -55,11 +55,11 @@ def get_server_conn():
     load_dotenv(os.path.join(os.path.dirname(__file__), '../server/.env'))
     try:
         conn = psycopg2.connect(
-            host=_get_secret_value("SERVER_DB_HOST", "localhoswitchback.proxy.rlwy.netst"),
+            host=_get_secret_value("SERVER_DB_HOST", "switchback.proxy.rlwy.netst"),
             port=int(_get_secret_value("SERVER_DB_PORT", 5432)),
             dbname=_get_secret_value("SERVER_DB_NAME", "railway"),
             user=_get_secret_value("SERVER_DB_USER", "postgres"),
-            password=_get_secret_value("SERVER_DB_PASS", "hqEtmRvshgrqoamfRkwwwTCoLNSxLelU"),
+            password=_get_secret_value("SERVER_DB_PASS", "password"),
             # sslmode=_get_secret_value("SERVER_DB_SSLMODE", "prefer"),
         )
         return conn
