@@ -29,19 +29,18 @@ def _get_secret_value(key, default=None):
         pass
     return os.getenv(key, default)
 
-# --- Fungsi Koneksi Database ---
 @st.cache_resource
 def get_realtime_conn():
     """Koneksi ke DB realtime (kama_realtime)."""
     load_dotenv(os.path.join(os.path.dirname(__file__), '../server/.env'))
     try:
         conn = psycopg2.connect(
-            host=_get_secret_value("REALTIME_DB_HOST", "switchback.proxy.rlwy.net"),
-            port=int(_get_secret_value("REALTIME_DB_PORT", 59750)),
+            host=_get_secret_value("REALTIME_DB_HOST", "localhost"),
+            port=int(_get_secret_value("REALTIME_DB_PORT", 5432)),
             dbname=_get_secret_value("REALTIME_DB_NAME", "railway"),
             user=_get_secret_value("REALTIME_DB_USER", "postgres"),
             password=_get_secret_value("REALTIME_DB_PASS", "password"),
-            # sslmode=_get_secret_value("REALTIME_DB_SSLMODE", "prefer"),
+            sslmode=_get_secret_value("REALTIME_DB_SSLMODE", "require"),
         )
         return conn
     except Exception as e:
@@ -55,12 +54,12 @@ def get_server_conn():
     load_dotenv(os.path.join(os.path.dirname(__file__), '../server/.env'))
     try:
         conn = psycopg2.connect(
-            host=_get_secret_value("SERVER_DB_HOST", "switchback.proxy.rlwy.netst"),
-            port=int(_get_secret_value("SERVER_DB_PORT", 59750)),
-            dbname=_get_secret_value("SERVER_DB_NAME", "railway"),
-            user=_get_secret_value("SERVER_DB_USER", "postgres"),
-            password=_get_secret_value("SERVER_DB_PASS", "password"),
-            # sslmode=_get_secret_value("SERVER_DB_SSLMODE", "prefer"),
+            host=_get_secret_value("REALTIME_DB_HOST", "localhost"),
+            port=int(_get_secret_value("REALTIME_DB_PORT", 5432)),
+            dbname=_get_secret_value("REALTIME_DB_NAME", "railway"),
+            user=_get_secret_value("REALTIME_DB_USER", "postgres"),
+            password=_get_secret_value("REALTIME_DB_PASS", "password"),
+            sslmode=_get_secret_value("REALTIME_DB_SSLMODE", "require"),
         )
         return conn
     except Exception as e:
