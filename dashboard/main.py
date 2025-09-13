@@ -36,7 +36,7 @@ def get_realtime_conn():
     try:
         conn = psycopg2.connect(
             host=_get_secret_value("REALTIME_DB_HOST", "localhost"),
-            port=int(_get_secret_value("REALTIME_DB_PORT", 5432)),
+            port=int(_get_secret_value("REALTIME_DB_PORT", 59750)),
             dbname=_get_secret_value("REALTIME_DB_NAME", "railway"),
             user=_get_secret_value("REALTIME_DB_USER", "postgres"),
             password=_get_secret_value("REALTIME_DB_PASS", "password"),
@@ -55,7 +55,7 @@ def get_server_conn():
     try:
         conn = psycopg2.connect(
             host=_get_secret_value("REALTIME_DB_HOST", "localhost"),
-            port=int(_get_secret_value("REALTIME_DB_PORT", 5432)),
+            port=int(_get_secret_value("REALTIME_DB_PORT", 59750)),
             dbname=_get_secret_value("REALTIME_DB_NAME", "railway"),
             user=_get_secret_value("REALTIME_DB_USER", "postgres"),
             password=_get_secret_value("REALTIME_DB_PASS", "password"),
