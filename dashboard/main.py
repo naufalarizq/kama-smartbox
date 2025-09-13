@@ -55,7 +55,7 @@ def get_db_connection():
     load_dotenv(os.path.join(os.path.dirname(__file__), '../server/.env'))
 
     # Prefer secrets: realtime_db -> db -> postgres -> database
-    sec = _get_secrets_section("realtime_db", "db", "postgres", "database")
+    sec = _get_secrets_section("realtime_db", "db", "postgres", "postgresql", "database")
     host = (sec.get("host") if sec else None) or _get_secret_value("SERVER_DB_HOST", "localhost")
     port = int((sec.get("port") if sec else None) or _get_secret_value("SERVER_DB_PORT", 5432))
     user = (sec.get("user") if sec else None) or _get_secret_value("SERVER_DB_USER", "postgres")
@@ -118,7 +118,7 @@ def get_server_db_connection():
     load_dotenv(os.path.join(os.path.dirname(__file__), '../server/.env'))
 
     # Prefer secrets: server_db -> db -> postgres -> database
-    sec = _get_secrets_section("server_db", "db", "postgres", "database")
+    sec = _get_secrets_section("server_db", "db", "postgres", "postgresql", "database")
     host = (sec.get("host") if sec else None) or _get_secret_value("SERVER_DB_HOST", "localhost")
     port = int((sec.get("port") if sec else None) or _get_secret_value("SERVER_DB_PORT", 5432))
     user = (sec.get("user") if sec else None) or _get_secret_value("SERVER_DB_USER", "postgres")
@@ -215,7 +215,7 @@ def fetch_latest_prediction(_conn_server):
 
 # --- Tampilan Utama ---
 st.title("📦 KAMA Smartbox")
-st.markdown("Selamat datang! Monitoring realtime makanana oleh KAMA Smartbox.")
+st.markdown("Selamat datang! Monitoring realtime makanan oleh KAMA Smartbox")
 
 realtime_conn = get_db_connection()
 server_conn = get_server_db_connection()
