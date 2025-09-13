@@ -160,13 +160,13 @@ REALTIME_DB_CONFIG = _resolve_db_config("realtime_db", env_prefix="DB", fallback
 # Resolve server DB config (from [server_db], fallback to [realtime_db], then env SERVER_DB_* / DB_*)
 SERVER_DB_CONFIG = _resolve_db_config("server_db", env_prefix="SERVER_DB", fallback_section="realtime_db")
 
-# Build connection string for realtime (mask password in logs)
-DB_HOST = REALTIME_DB_CONFIG.get('host') or 'localhost'
-DB_PORT = int(REALTIME_DB_CONFIG.get('port') or 5432)
-DB_NAME = REALTIME_DB_CONFIG.get('dbname') or 'kama-realtime'
-DB_USER = REALTIME_DB_CONFIG.get('user') or 'postgres'
-DB_PASS = REALTIME_DB_CONFIG.get('password') or ''
-DB_SSLMODE = REALTIME_DB_CONFIG.get('sslmode')
+# Ambil dari environment variables (Railway)
+DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_PORT = int(os.getenv('DB_PORT', 5432))
+DB_NAME = os.getenv('DB_NAME', 'kama-realtime')
+DB_USER = os.getenv('DB_USER', 'postgres')
+DB_PASS = os.getenv('DB_PASS', '')
+DB_SSLMODE = os.getenv('DB_SSLMODE', 'require')
 
 CONN_INFO = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user={DB_USER} password={DB_PASS}" + (f" sslmode={DB_SSLMODE}" if DB_SSLMODE else "")
 
