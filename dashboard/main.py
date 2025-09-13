@@ -35,11 +35,11 @@ def get_realtime_conn():
     load_dotenv(os.path.join(os.path.dirname(__file__), '../server/.env'))
     try:
         conn = psycopg2.connect(
-            host=_get_secret_value("REALTIME_DB_HOST", "localhost"),
-            port=int(_get_secret_value("REALTIME_DB_PORT", 59750)),
-            dbname=_get_secret_value("REALTIME_DB_NAME", "railway"),
-            user=_get_secret_value("REALTIME_DB_USER", "postgres"),
-            password=_get_secret_value("REALTIME_DB_PASS", "password"),
+            host=_get_secret_value("REALTIME_DB_HOST"),
+            port=int(_get_secret_value("REALTIME_DB_PORT")),
+            dbname=_get_secret_value("REALTIME_DB_NAME"),
+            user=_get_secret_value("REALTIME_DB_USER"),
+            password=_get_secret_value("REALTIME_DB_PASS"),
             sslmode=_get_secret_value("REALTIME_DB_SSLMODE", "require"),
         )
         return conn
@@ -54,12 +54,12 @@ def get_server_conn():
     load_dotenv(os.path.join(os.path.dirname(__file__), '../server/.env'))
     try:
         conn = psycopg2.connect(
-            host=_get_secret_value("REALTIME_DB_HOST", "localhost"),
-            port=int(_get_secret_value("REALTIME_DB_PORT", 59750)),
-            dbname=_get_secret_value("REALTIME_DB_NAME", "railway"),
-            user=_get_secret_value("REALTIME_DB_USER", "postgres"),
-            password=_get_secret_value("REALTIME_DB_PASS", "password"),
-            sslmode=_get_secret_value("REALTIME_DB_SSLMODE", "require"),
+            host=_get_secret_value("SERVER_DB_HOST"),
+            port=int(_get_secret_value("SERVER_DB_PORT")),
+            dbname=_get_secret_value("SERVER_DB_NAME"),
+            user=_get_secret_value("SERVER_DB_USER"),
+            password=_get_secret_value("SERVER_DB_PASS"),
+            sslmode=_get_secret_value("SERVER_DB_SSLMODE", "require"),
         )
         return conn
     except Exception as e:
