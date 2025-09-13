@@ -485,7 +485,7 @@ if __name__ == '__main__':
     scheduler.add_job(
         run_spoil_prediction_job, 
         'interval', 
-        hours=1, 
+        minutes=1, 
         next_run_time=datetime.now()
     )
     
