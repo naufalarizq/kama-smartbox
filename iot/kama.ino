@@ -32,8 +32,8 @@ const int GREEN_LED = 27;
 // WiFi config
 const char* WIFI_SSID = "TP-Link_0B5E";
 const char* WIFI_PASS = "pondokAA2022";
-const char* PREDICT_URL = "https://b3b032f2ac71.ngrok-free.app/predict"; // untuk prediksi AI
-const char* INGEST_URL = "https://b3b032f2ac71.ngrok-free.app/ingest";  // untuk kirim data ke database
+const char* PREDICT_URL = "kama-smartbox-production.up.railway.app/predict"; // untuk prediksi AI
+const char* INGEST_URL = "kama-smartbox-production.up.railway.app/ingest";  // untuk kirim data ke database
 
 // DHT setup
 #define DHT_TYPE DHT22
