@@ -186,7 +186,7 @@ server_conn = get_server_conn()
 # Auto-refresh 10 detik
 try:
     from streamlit_autorefresh import st_autorefresh
-    st_autorefresh(interval=10_000, key="kama_autorefresh")
+    st_autorefresh(interval=120_000, key="kama_autorefresh")
 except Exception:
     last_trigger = st.session_state.get('_last_refresh', 0)
     now = time.time()
