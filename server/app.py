@@ -4,7 +4,7 @@ import pandas as pd
 try:
     from psycopg2.extras import execute_values, execute_batch
 except ModuleNotFoundError:
-    from psycopg.extras import execute_values, execute_batch  # type: ignore
+    from psycopg.extras import execute_values, execute_batch  
 from dotenv import load_dotenv
 import configparser
 
@@ -12,12 +12,11 @@ import os
 try:
     import psycopg2
 except ModuleNotFoundError:
-    import psycopg as psycopg2  # type: ignore
+    import psycopg as psycopg2  
 import sys
 import joblib
 import numpy as np
 from threading import Lock
-# import requests # <-- Ditambahkan
 import google.generativeai as genai
 from datetime import datetime
 
@@ -101,15 +100,12 @@ def predict():
         'jenis_makanan': jenis_makanan
     }])
     model = get_model()
-    # If model is a wrapper (pipeline), it will preprocess automatically
     pred_idx = model.predict(X)[0]
-    # Try to get label names from model if available
     label = None
     if hasattr(model, 'classes_'):
         label = str(model.classes_[pred_idx])
     elif hasattr(model, 'named_steps') and 'clf' in model.named_steps and hasattr(model.named_steps['clf'], 'classes_'):
         label = str(model.named_steps['clf'].classes_[pred_idx])
-    # fallback: use mapping if label is still None or is digit
     if label is None or label.isdigit():
         label_map = {0: "bad", 1: "good", 2: "warning"}
         label = label_map.get(int(pred_idx), str(pred_idx))
@@ -120,7 +116,6 @@ def _get_ini_value(section: str, key: str):
     try:
         if _ENV_INI.has_section(section) and _ENV_INI.has_option(section, key):
             return _ENV_INI.get(section, key)
-        # also support DEFAULT/global options if user didn't add sections
         if section is None and _ENV_INI.defaults() and key in _ENV_INI.defaults():
             return _ENV_INI.defaults().get(key)
     except Exception:
@@ -133,18 +128,14 @@ def _resolve_db_config(primary_section: str, env_prefix: str, fallback_section: 
     """
     cfg = {}
     for key in ["host", "port", "user", "password", "dbname", "sslmode"]:
-        # 1) Read from INI section
         val = _get_ini_value(primary_section, key)
         if val is None and fallback_section:
             val = _get_ini_value(fallback_section, key)
-        # 2) Environment variables with explicit prefix (e.g., SERVER_DB_HOST)
         if val is None:
             env_key_specific = f"{env_prefix}_{key.upper()}"
             val = os.getenv(env_key_specific)
-        # 3) Generic DB_* (e.g., DB_HOST)
         if val is None:
             val = os.getenv(f"DB_{key.upper()}")
-        # 4) Bare env vars possibly loaded by python-dotenv (e.g., host, user)
         if val is None:
             val = os.getenv(key) or os.getenv(key.upper())
         if key == "port" and val is not None:
@@ -155,12 +146,9 @@ def _resolve_db_config(primary_section: str, env_prefix: str, fallback_section: 
         cfg[key] = val
     return cfg
 
-# Resolve realtime DB config (from [realtime_db] or env DB_*)
 REALTIME_DB_CONFIG = _resolve_db_config("realtime_db", env_prefix="DB", fallback_section=None)
-# Resolve server DB config (from [server_db], fallback to [realtime_db], then env SERVER_DB_* / DB_*)
 SERVER_DB_CONFIG = _resolve_db_config("server_db", env_prefix="SERVER_DB", fallback_section="realtime_db")
 
-# Ambil dari environment variables (Railway)
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = int(os.getenv('DB_PORT', 5432))
 DB_NAME = os.getenv('DB_NAME', 'kama-realtime')
@@ -216,7 +204,6 @@ def ingest():
     status = data.get('status')
 
     try:
-        # Log incoming request untuk debugging
         print('Ingest from', request.remote_addr, 'payload=', data)
 
         conn = get_conn()
@@ -331,7 +318,6 @@ def run_spoil_prediction_job():
 
         if not new_data:
             print("[Scheduler] Tidak ada data baru untuk ditransfer.")
-            # Penting: Tutup koneksi sebelum keluar dari fungsi
             if realtime_conn: realtime_conn.close()
             if server_conn: server_conn.close()
             print("--- [Scheduler] Proses Selesai (tidak ada data) ---")
@@ -349,7 +335,6 @@ def run_spoil_prediction_job():
         
         if not new_ids:
             print("[Scheduler] Tidak ada baris baru yang berhasil dimasukkan (kemungkinan data duplikat).")
-            # Penting: Tutup koneksi sebelum keluar dari fungsi
             if realtime_conn: realtime_conn.close()
             if server_conn: server_conn.close()
             print("--- [Scheduler] Proses Selesai (data duplikat) ---")
@@ -478,10 +463,8 @@ def force_run_job():
     return jsonify({'status': 'ok', 'message': 'Job prediksi kebusukan telah dipicu. Periksa log di terminal.'})
 
 if __name__ == '__main__':
-    # Konfigurasi dan jalankan scheduler
     scheduler = BackgroundScheduler(daemon=True)
     
-    # PERBAIKAN UTAMA: Gunakan 'next_run_time' untuk menjalankan job saat startup
     scheduler.add_job(
         run_spoil_prediction_job, 
         'interval', 
@@ -493,5 +476,4 @@ if __name__ == '__main__':
     print("Scheduler internal telah dimulai.")
     print("Job pertama akan langsung dijalankan, lalu berulang setiap 1 jam.")
     
-    # Jalankan aplikasi Flask
     app.run(host='0.0.0.0', port=5000)
