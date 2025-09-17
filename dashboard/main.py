@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 try:
     import psycopg2
 except ModuleNotFoundError:
-    import psycopg as psycopg2  # type: ignore
+    import psycopg as psycopg2 
 import joblib
 import gdown
 from pathlib import Path
@@ -25,7 +25,7 @@ st.set_page_config(
 # --- Secrets helper ---
 def _get_secret_value(key, default=None):
     try:
-        val = st.secrets[key]  # type: ignore[attr-defined]
+        val = st.secrets[key] 
         if val is not None:
             return val
     except Exception:

@@ -1,21 +1,3 @@
-/*
-  kama.ino
-  ESP32 sketch that reads DHT22 + MQ135, and (optionally) runs a TFLite Micro model
-  to classify food status into 3 labels: good, warning, bad. The labels map to LEDs:
-    - good  -> GREEN
-    - warning -> YELLOW
-    - bad   -> RED
-
-  NOTE: By default TFLite Micro is DISABLED (USE_TFLITE_MICRO = 0) so this sketch
-  compiles with Arduino IDE without extra libraries. To enable the model you must
-  install TensorFlow Lite Micro for Arduino (e.g. the Arduino_TensorFlowLite library
-  or the appropriate board package that provides TFLM headers), then set
-  USE_TFLITE_MICRO to 1.
-
-  Model bytes (C source) should be placed alongside this sketch as model_data.h/.cc
-  (this repo already includes `model_data.h` and `model_data.cc` in the same folder).
-*/
-
 #include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -44,13 +26,13 @@ const float TEMP_MIN = 2.0;
 const float TEMP_MAX = 8.0;
 const float HUMID_MIN = 40.0;
 const float HUMID_MAX = 70.0;
-const int GAS_THRESHOLD = 2000; // raw ADC threshold (0-4095)
+const int GAS_THRESHOLD = 2000; 
 
 // MQ135 sampling/calibration
 #define MQ135_SAMPLES 8
 #define MQ135_SAMPLE_INTERVAL_MS 30
-const bool CALIBRATE_MQ135 = false; // set true only in clean air to compute R0
-const float MQ135_RL = 10000.0; // load resistor, ohms
+const bool CALIBRATE_MQ135 = false; 
+const float MQ135_RL = 10000.0; 
 const float MQ135_CLEAN_AIR_FACTOR = 3.6;
 
 // Timing
@@ -111,7 +93,6 @@ float calibrateR0() {
 }
 
 void setup() {
-  // http.setInsecure(); 
   Serial.begin(115200);
   delay(10000);
   dht.begin();
@@ -186,7 +167,7 @@ void loop() {
       http2.begin(INGEST_URL);
       http2.addHeader("Content-Type", "application/json");
       StaticJsonDocument<256> doc2;
-      doc2["battery"] = 100; // ganti dengan pembacaan battery jika ada
+      doc2["battery"] = 100; //default
       doc2["temperature"] = temperature;
       doc2["humidity"] = humidity;
       doc2["gas_level"] = gasADC;
@@ -252,7 +233,6 @@ void setLEDByLabel(const String& label) {
   } else if (label == "bad") {
     digitalWrite(RED_LED, HIGH);
   } else {
-    // unknown: blink all
     digitalWrite(RED_LED, HIGH); digitalWrite(YELLOW_LED, HIGH); digitalWrite(GREEN_LED, HIGH);
   }
 }

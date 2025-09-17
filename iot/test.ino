@@ -1,7 +1,3 @@
-// ESP32 example: poll Flask /latest_status and drive an external RGB LED
-// - Connects to WiFi
-// - Every 5s, GET http://<server-ip>:<port>/latest_status
-// - Map status to color: good=GREEN, warning=YELLOW, bad=RED, unknown=OFF
 
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -10,32 +6,22 @@
 const char* WIFI_SSID     = "kama123";
 const char* WIFI_PASSWORD = "098767890";
 
-// URL of your Flask server (must be reachable from ESP32)
-// Example: "http://192.168.1.10:5000/latest_status"
 String LATEST_STATUS_URL = "kama-smartbox-production.up.railway.app/latest_status";
 
-// Choose your LED hardware style:
-// - If you use a traffic-light style module (Red/Yellow/Green separate), set USE_RYG_MODULE = true
-// - If you use a single RGB LED, set USE_RYG_MODULE = false and wire RED/GREEN/BLUE
-const bool USE_RYG_MODULE = true; // set true per request: warning uses dedicated Yellow only
+const bool USE_RYG_MODULE = true;
 
 // RYG module pins (set if USE_RYG_MODULE = true)
-const int RED_PIN_RYG    = 25; // Red
-const int YELLOW_PIN_RYG = 14; // Yellow (dedicated)
-const int GREEN_PIN_RYG  = 26; // Green
+const int RED_PIN_RYG    = 25; 
+const int YELLOW_PIN_RYG = 14; 
+const int GREEN_PIN_RYG  = 26; 
 
-// RGB LED pin mapping (set if USE_RYG_MODULE = false)
-// Adjust to your wiring: e.g., R=25, G=26, B=27 are safe choices on many ESP32 boards
-const int RED_PIN   = 25; // Red channel
-const int GREEN_PIN = 26; // Green channel
-const int BLUE_PIN  = 27; // Blue channel
+const int RED_PIN   = 25; 
+const int GREEN_PIN = 26; 
+const int BLUE_PIN  = 27; 
 
-// Set to true if your LED is Common Anode; false for Common Cathode
 const bool COMMON_ANODE = false;
 
 void setChannel(int pin, bool on) {
-  // For Common Anode: LOW = ON, HIGH = OFF
-  // For Common Cathode: HIGH = ON, LOW = OFF
   if (COMMON_ANODE) {
     digitalWrite(pin, on ? LOW : HIGH);
   } else {
@@ -61,7 +47,6 @@ void setAllOff() {
 
 // Simple JSON parser helpers (very naive):
 String extractJsonValue(const String& json, const String& key) {
-  // Looks for: "key":"value" or "key":value
   String pattern = String("\"") + key + "\"";
   int idx = json.indexOf(pattern);
   if (idx < 0) return "";
@@ -79,7 +64,6 @@ String extractJsonValue(const String& json, const String& key) {
     return "";
   }
 
-  // Otherwise read until comma or closing brace
   int end = start;
   while (end < (int)json.length() && json[end] != ',' && json[end] != '}' && json[end] != '\n') end++;
   String raw = json.substring(start, end);
@@ -117,7 +101,6 @@ void setup() {
     pinMode(GREEN_PIN, OUTPUT);
     pinMode(BLUE_PIN, OUTPUT);
   }
-  // Turn OFF initially
   setAllOff();
 
   connectWiFi();
@@ -143,17 +126,14 @@ void loop() {
           setChannel(YELLOW_PIN_RYG, false);
           setChannel(GREEN_PIN_RYG, false);
         } else {
-          // RED only
           setColor(true, false, false);
         }
       } else if (status == "warning") {
         if (USE_RYG_MODULE) {
-          // YELLOW only (dedicated pin)
           setChannel(RED_PIN_RYG, false);
           setChannel(YELLOW_PIN_RYG, true);
           setChannel(GREEN_PIN_RYG, false);
         } else {
-          // YELLOW via RGB mix (RED + GREEN)
           setColor(true, true, false);
         }
       } else if (status == "good") {
@@ -162,11 +142,9 @@ void loop() {
           setChannel(YELLOW_PIN_RYG, false);
           setChannel(GREEN_PIN_RYG, true);
         } else {
-          // GREEN only
           setColor(false, true, false);
         }
       } else {
-        // Unknown -> OFF
         setAllOff();
       }
     } else {
@@ -176,9 +154,8 @@ void loop() {
 
     http.end();
   } else {
-    // Try reconnecting if needed
     connectWiFi();
   }
 
-  delay(5000); // Poll every 5 seconds
+  delay(5000);
 }

@@ -21,14 +21,9 @@ DB_PASS = os.getenv('DB_PASS', 'satudua3')
 
 CONN_INFO = f"host={DB_HOST} port={DB_PORT} dbname={DB_NAME} user={DB_USER} password={DB_PASS}"
 
-# -----------------------------------------------------------------------------
-# Mode penentuan status
-#   - interactive: minta input status dari user per baris (good/warning/bad)
-#   - auto: gunakan urutan (API / model lokal / acak)
-#   - fixed: gunakan MANUAL_STATUS di bawah untuk semua baris
-# -----------------------------------------------------------------------------
-MODE = os.getenv('TEST_MODE', 'interactive').lower()  # 'interactive' | 'auto' | 'fixed'
-MANUAL_STATUS = os.getenv('TEST_MANUAL_STATUS')  # digunakan jika MODE == 'fixed'
+
+MODE = os.getenv('TEST_MODE', 'interactive').lower()  
+MANUAL_STATUS = os.getenv('TEST_MANUAL_STATUS')  
 
 def insert_test_data():
     """
