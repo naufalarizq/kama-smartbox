@@ -43,7 +43,7 @@ def insert_test_data():
 
     def predict_via_api(temp, hum, gas, jenis='fruits'):
         try:
-            resp = requests.post('http://localhost:5000/predict', json={
+            resp = requests.post('https://kama-smartbox-production.up.railway.app/predict', json={
                 'temperature': temp,
                 'humidity': hum,
                 'gas_level': gas,
