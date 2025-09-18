@@ -8,7 +8,7 @@ KAMA : Smart Food Box adalah kotak penyimpanan makanan cerdas yang dilengkapi de
 
 KAMA Smart Food Box didesain agar bisa digunakan seperti kotak makan pada umumnya, seperti bisa dimasukan ke tas, dibawa ke kantor dan dibawa kegiatan. KAMA Smart Food Box ini terdiri dari 2 komponon yaitu Perangkat Box dan Dashboard Interaktif.
 
-[Lihat Demo Video](asets/video_demo.mp4)
+[Lihat Demo Video](asets/video_demo.gif)
 
 #### KAMA BOX Component
 
