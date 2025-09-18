@@ -6,13 +6,13 @@ KAMA : Smart Food Box adalah kotak penyimpanan makanan cerdas yang dilengkapi de
 ## Perangkat dan Penggunaannya
 KAMA Smart Food Box didesain agar bisa digunakan seperti kotak makan pada umumnya, seperti bisa dimasukan ke tas, dibawa ke kantor dan dibawa kegiatan. KAMA Smart Food Box ini terdiri dari 2 komponon yaitu Perangkat Box dan Dashboard Interaktif.
 
-![Demo](D:\naufalarizq\project\kama-smartbox\asets\video_demo.mp4)
+![Demo](asets\video_demo.mp4)
 
-### KAMA BOX Component
+#### KAMA BOX Component
 1. Rotten Food Analyzer → analisis kondisi makanan menggunakan sensor gas, suhu, kelembapan, dan klasifikasi AI.
 2. Portable → KAMA Box didesain ringkas sehingga praktis untuk dibawa ke mana saja, layaknya sebuah lunch box. Sensor pendeteksi kelayakan makanan di dalamnya akan tetap aktif dan terus mengirimkan notifikasi ke smartphone selama daya baterai masih tersedia. Dengan begitu, tidak perlu khawatir tentang kualitas makanan Anda saat bepergian.
 
-### Dashbord KAMA
+#### Dashbord KAMA
 Kama Dashboard merupakan webapp dashboard pendamping KAMA yang berperan sebagai pusat kontrol dan notifikasi pengguna. Tersedia beberapa fitur utama berbasis teknologi AI dan LLM:
 1. Real-Time Box Monitoring →  Menampilkan status terkini dari masing-masing Box yang sedang aktif.
 2. Chatbot: AI-based Recommendation System → prediksi umur makanan, rekomendasi pengolahan untuk mencegah food waste, serta integrasi chatbot berbasis LLM sebagai asisten pengguna.
