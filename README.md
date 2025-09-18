@@ -23,3 +23,5 @@ Kama Dashboard merupakan webapp dashboard pendamping KAMA yang berperan sebagai 
 
 1. Real-Time Box Monitoring → Menampilkan status terkini dari masing-masing Box yang sedang aktif.
 2. Chatbot: AI-based Recommendation System → prediksi umur makanan, rekomendasi pengolahan untuk mencegah food waste, serta integrasi chatbot berbasis LLM sebagai asisten pengguna.
+
+![Tampilan Dashboard KAMA with Streamlit](asets/dashboard.png)(https://kama-dashboard.streamlit.app/)
