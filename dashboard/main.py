@@ -158,23 +158,52 @@ def predict_with_models(row: pd.Series):
     spoil_days = float(spoil_model.predict(X)[0])
     return label, spoil_days
 
-def render_llm_recommendation(jenis_makanan: str, spoil_info: str):
-    key = _get_secret_value("GEMINI_API_KEY")
-    if not key:
-        st.info("Tambahkan GEMINI_API_KEY di secrets/.env untuk rekomendasi AI.")
-        return
+# def render_llm_recommendation(jenis_makanan: str, spoil_info: str):
+#     key = _get_secret_value("GEMINI_API_KEY")
+#     if not key:
+#         st.info("Tambahkan GEMINI_API_KEY di secrets/.env untuk rekomendasi AI.")
+#         return
+#     try:
+#         genai.configure(api_key=key)
+#         prompt = (
+#             f"Makanan dengan jenis '{jenis_makanan}' telah dinyatakan busuk. {spoil_info} "
+#             "Berikan 2-3 ide singkat dan praktis untuk mengolahnya agar tidak menjadi sampah, "
+#             "misalnya dijadikan kompos atau pupuk organik cair. Jawaban harus dalam format daftar bernomor."
+#         )
+#         model = genai.GenerativeModel("gemini-1.5-flash")
+#         resp = model.generate_content(prompt)
+#         st.markdown(resp.text)
+#     except Exception as e:
+#         st.warning(f"Gagal mendapatkan rekomendasi AI: {e}")
+
+
+def fetch_recommendation_from_server(conn, realtime_id):
+    """Fetch recommendation_text from kama_server by id. Returns string or None."""
+    if conn is None:
+        return None
     try:
-        genai.configure(api_key=key)
-        prompt = (
-            f"Makanan dengan jenis '{jenis_makanan}' telah dinyatakan busuk. {spoil_info} "
-            "Berikan 2-3 ide singkat dan praktis untuk mengolahnya agar tidak menjadi sampah, "
-            "misalnya dijadikan kompos atau pupuk organik cair. Jawaban harus dalam format daftar bernomor."
-        )
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        resp = model.generate_content(prompt)
-        st.markdown(resp.text)
+        # psycopg/psycopg2 may not accept numpy.int64; coerce to native Python types
+        if hasattr(realtime_id, 'item'):
+            try:
+                realtime_id = realtime_id.item()
+            except Exception:
+                pass
+        try:
+            realtime_id = int(realtime_id)
+        except Exception:
+            realtime_id = str(realtime_id)
+
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT recommendation_text FROM kama_server WHERE id = %s ORDER BY recorded_at DESC LIMIT 1",
+                (realtime_id,)
+            )
+            row = cur.fetchone()
+            if row and row[0]:
+                return row[0]
     except Exception as e:
-        st.warning(f"Gagal mendapatkan rekomendasi AI: {e}")
+        st.warning(f"Gagal ambil rekomendasi dari server DB: {e}")
+    return None
 
 # --- UI ---
 st.title("📦 KAMA Smartbox")
@@ -238,10 +267,17 @@ else:
                     txt = f"Dalam {pred_spoil_days:.1f} hari"
                 st.metric("⏳ Prediksi Busuk", txt)
 
-            # Rekomendasi LLM jika status 'bad'
+            # Rekomendasi: ambil dari tabel kama_server (recommendation_text) jika status 'bad'
             if pred_label == 'bad':
                 jenis = row.get('jenis_makanan') or row.get('jenis') or 'buah-buahan'
-                render_llm_recommendation(jenis, "Makanan dinyatakan busuk oleh model.")
+                # The row id in realtime should map to kama_server.id after ETL
+                realtime_id = row.get('id')
+                rec_text = fetch_recommendation_from_server(server_conn, realtime_id)
+                if rec_text:
+                    st.markdown("**Rekomendasi:**")
+                    st.markdown(rec_text)
+                else:
+                    st.info("Rekomendasi belum tersedia di server. Tunggu proses prediksi atau jalankan ETL.")
 
             # Grafik suhu & kelembapan
             try:

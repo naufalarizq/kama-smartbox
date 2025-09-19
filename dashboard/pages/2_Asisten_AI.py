@@ -7,8 +7,6 @@ st.set_page_config(page_title="Asisten KAMA", page_icon="🤖")
 st.title("🤖 Asisten AI KAMA")
 st.write("Punya pertanyaan? Tanyakan pada asisten AI kami!")
 
-# Ambil API Key dari .env di folder server
-# Sebaiknya ini dijadikan environment variable di sistem deployment nanti
 try:
     from dotenv import load_dotenv
     load_dotenv(os.path.join(os.path.dirname(__file__), '../../server/.env'))
@@ -33,7 +31,6 @@ for message in st.session_state.chat_history:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# Terima input dari pengguna
 if prompt := st.chat_input("Tanya seputar kelayakan makanan..."):
     # Tambahkan pesan pengguna ke riwayat
     st.session_state.chat_history.append({"role": "user", "content": prompt})
