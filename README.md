@@ -25,3 +25,28 @@ Kama Dashboard merupakan webapp dashboard pendamping KAMA yang berperan sebagai 
 2. Chatbot: AI-based Recommendation System → prediksi umur makanan, rekomendasi pengolahan untuk mencegah food waste, serta integrasi chatbot berbasis LLM sebagai asisten pengguna.
 
 [![Tampilan Dashboard KAMA with Streamlit](asets/dashboard.png)](https://kama-dashboard.streamlit.app/)
+
+## Arsitektur IoT
+
+Arsitektur IoT pada KAMA Smartbox terdiri dari beberapa komponen utama yang saling terintegrasi untuk memastikan monitoring dan analisis makanan secara real-time:
+
+1. **Sensor Box (Perangkat IoT)**
+   - Dilengkapi dengan sensor suhu, kelembapan, dan gas (CO₂, metana, etilen, dll) yang terhubung ke mikrokontroler (misal ESP32).
+   - Sensor membaca kondisi lingkungan makanan secara berkala dan mengirimkan data ke server melalui koneksi Wi-Fi.
+
+2. **IoT Gateway & Server**
+   - Data sensor dikirimkan ke backend server (Flask API) menggunakan protokol HTTP (REST API).
+   - Server menerima data, menyimpannya ke database (PostgreSQL), dan menjalankan proses ETL serta analisis AI untuk klasifikasi status makanan dan prediksi umur simpan.
+
+3. **Dashboard & Notifikasi**
+   - Dashboard interaktif (Streamlit) mengambil data dari database untuk menampilkan status makanan, prediksi, dan rekomendasi kepada pengguna.
+   - Notifikasi dan rekomendasi dapat diakses secara real-time melalui dashboard atau chatbot AI.
+
+4. **Aktuator (Opsional)**
+   - Berdasarkan status makanan, perangkat dapat mengaktifkan aktuator seperti LED indikator (merah/kuning/hijau) untuk memberi peringatan langsung pada pengguna.
+
+**Alur Data:**
+- Sensor → Mikrokontroler → Server (API) → Database → Dashboard/Notifikasi → Pengguna
+
+## AI Framework
+
