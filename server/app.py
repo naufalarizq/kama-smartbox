@@ -147,7 +147,7 @@ def _resolve_db_config(primary_section: str, env_prefix: str, fallback_section: 
     return cfg
 
 REALTIME_DB_CONFIG = _resolve_db_config("realtime_db", env_prefix="DB", fallback_section=None)
-SERVER_DB_CONFIG = _resolve_db_config("server_db", env_prefix="SERVER_DB", fallback_section=None)
+SERVER_DB_CONFIG = _resolve_db_config("server_db", env_prefix="SERVER_DB", fallback_section="realtime_db")
 
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = int(os.getenv('DB_PORT', 5432))
@@ -271,7 +271,24 @@ _spoil_model_lock = Lock()
 
 def get_server_db_connection():
     """Membuat koneksi ke database kama_server."""
-    return psycopg2.connect(**SERVER_DB_CONFIG)
+    config = SERVER_DB_CONFIG.copy()
+    # Pastikan password diisi
+    if not config.get("password"):
+        config["password"] = (
+            os.getenv("SERVER_DB_PASSWORD") or
+            os.getenv("SERVER_DB_PASS") or
+            os.getenv("DB_PASS") or
+            os.getenv("PASSWORD")
+        )
+    # Pastikan port bertipe int
+    if config.get("port"):
+        try:
+            config["port"] = int(config["port"])
+        except Exception:
+            pass
+    # Remove None values
+    config = {k: v for k, v in config.items() if v is not None}
+    return psycopg2.connect(**config)
 
 def get_spoil_model():
     """Memuat model untuk prediksi kebusukan (predicted_spoil)."""
