@@ -269,6 +269,10 @@ SPOIL_MODEL_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../a
 _spoil_model = None
 _spoil_model_lock = Lock()
 
+def get_server_db_connection():
+    """Membuat koneksi ke database kama_server."""
+    return psycopg2.connect(**SERVER_DB_CONFIG)
+
 def get_spoil_model():
     """Memuat model untuk prediksi kebusukan (predicted_spoil)."""
     global _spoil_model
@@ -405,9 +409,7 @@ def run_spoil_prediction_job():
         print("--- [Scheduler] Proses Selesai (koneksi ditutup) ---")
 
 
-def get_server_db_connection():
-    """Membuat koneksi ke database kama_server."""
-    return psycopg2.connect(**SERVER_DB_CONFIG)
+
 
 @app.route('/latest_spoil_prediction', methods=['GET'])
 def latest_spoil_prediction():
