@@ -462,18 +462,17 @@ def force_run_job():
     run_spoil_prediction_job()
     return jsonify({'status': 'ok', 'message': 'Job prediksi kebusukan telah dipicu. Periksa log di terminal.'})
 
+
+scheduler = BackgroundScheduler(daemon=True)
+scheduler.add_job(
+    run_spoil_prediction_job, 
+    'interval', 
+    minutes=5,  
+    next_run_time=datetime.now()
+)
+scheduler.start()
+print("Scheduler internal telah dimulai.")
+print("Job pertama akan langsung dijalankan, lalu berulang setiap 1 jam.")
+    
 if __name__ == '__main__':
-    scheduler = BackgroundScheduler(daemon=True)
-    
-    scheduler.add_job(
-        run_spoil_prediction_job, 
-        'interval', 
-        minutes=2, 
-        next_run_time=datetime.now()
-    )
-    
-    scheduler.start()
-    print("Scheduler internal telah dimulai.")
-    print("Job pertama akan langsung dijalankan, lalu berulang setiap 1 jam.")
-    
     app.run(host='0.0.0.0', port=5000)
