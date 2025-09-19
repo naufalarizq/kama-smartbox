@@ -322,7 +322,7 @@ def run_spoil_prediction_job():
 
         # 1. Transfer data baru
         with server_conn.cursor() as server_cur:
-            server_cur.execute("SELECT MAX(recorded_at) FROM kama_server")
+            server_cur.execute("SELECT MAX(recorded_at) FROM public.kama_server")
             last_timestamp = server_cur.fetchone()[0]
 
         with realtime_conn.cursor() as realtime_cur:
@@ -346,7 +346,7 @@ def run_spoil_prediction_job():
 
         print(f"[Scheduler] Ditemukan {len(new_data)} baris data baru untuk ditransfer.")
         insert_query = """
-            INSERT INTO kama_server (id, battery, temperature, humidity, gas_level, status, recorded_at)
+            INSERT INTO public.kama_server (id, battery, temperature, humidity, gas_level, status, recorded_at)
             VALUES %s ON CONFLICT (id) DO NOTHING RETURNING id;
         """
         with server_conn.cursor() as server_cur_insert:
@@ -367,7 +367,7 @@ def run_spoil_prediction_job():
         with server_conn.cursor() as server_cur_select:
             # Menggunakan tuple untuk klausa IN, lalu ambil yang paling akhir berdasarkan recorded_at
             server_cur_select.execute(
-                "SELECT id, temperature, humidity, gas_level, status, jenis_makanan FROM kama_server WHERE id IN %s ORDER BY recorded_at DESC LIMIT 1",
+                "SELECT id, temperature, humidity, gas_level, status, jenis_makanan FROM public.kama_server WHERE id IN %s ORDER BY recorded_at DESC LIMIT 1",
                 (tuple(new_ids),)
             )
             rows_to_process = server_cur_select.fetchall()
@@ -388,7 +388,7 @@ def run_spoil_prediction_job():
         df_to_predict['predicted_spoil'] = predictions
 
         print("[Scheduler] Memproses hasil dan menyiapkan update database...")
-        update_query = "UPDATE kama_server SET predicted_spoil = %s, recommendation_text = %s WHERE id = %s"
+        update_query = "UPDATE public.kama_server SET predicted_spoil = %s, recommendation_text = %s WHERE id = %s"
         update_data = []
 
         for index, row in df_to_predict.iterrows():
