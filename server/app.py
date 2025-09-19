@@ -147,7 +147,7 @@ def _resolve_db_config(primary_section: str, env_prefix: str, fallback_section: 
     return cfg
 
 REALTIME_DB_CONFIG = _resolve_db_config("realtime_db", env_prefix="DB", fallback_section=None)
-SERVER_DB_CONFIG = _resolve_db_config("server_db", env_prefix="DB", fallback_section="realtime_db")
+SERVER_DB_CONFIG = _resolve_db_config("server_db", env_prefix="SERVER_DB", fallback_section="realtime_db")
 
 DB_HOST = os.getenv('DB_HOST', 'localhost')
 DB_PORT = int(os.getenv('DB_PORT', 5432))
