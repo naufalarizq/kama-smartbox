@@ -7,12 +7,13 @@ from dotenv import load_dotenv
 try:
     import psycopg2
 except ModuleNotFoundError:
-    import psycopg as psycopg2 
+    import psycopg as psycopg2
 import joblib
 import gdown
 from pathlib import Path
 import numpy as np
 import google.generativeai as genai
+import traceback
 
 # --- Konfigurasi Halaman ---
 st.set_page_config(
@@ -25,7 +26,7 @@ st.set_page_config(
 # --- Secrets helper ---
 def _get_secret_value(key, default=None):
     try:
-        val = st.secrets[key] 
+        val = st.secrets[key]
         if val is not None:
             return val
     except Exception:
@@ -38,11 +39,11 @@ def get_realtime_conn():
     load_dotenv(os.path.join(os.path.dirname(__file__), '../server/.env'))
     try:
         return psycopg2.connect(
-            host=_get_secret_value("REALTIME_DB_HOST"),
-            port=int(_get_secret_value("REALTIME_DB_PORT")),
-            dbname=_get_secret_value("REALTIME_DB_NAME"),
-            user=_get_secret_value("REALTIME_DB_USER"),
-            password=_get_secret_value("REALTIME_DB_PASS"),
+            host=_get_secret_value("REALTIME_DB_HOST") or _get_secret_value("SERVER_DB_HOST"),
+            port=int(_get_secret_value("REALTIME_DB_PORT") or _get_secret_value("SERVER_DB_PORT")),
+            dbname=_get_secret_value("REALTIME_DB_NAME") or _get_secret_value("SERVER_DB_NAME"),
+            user=_get_secret_value("REALTIME_DB_USER") or _get_secret_value("SERVER_DB_USER"),
+            password=_get_secret_value("REALTIME_DB_PASS") or _get_secret_value("SERVER_DB_PASS"),
             sslmode=_get_secret_value("REALTIME_DB_SSLMODE", "require"),
         )
     except Exception as e:
@@ -54,11 +55,11 @@ def get_server_conn():
     load_dotenv(os.path.join(os.path.dirname(__file__), '../server/.env'))
     try:
         return psycopg2.connect(
-            host=_get_secret_value("SERVER_DB_HOST"),
-            port=int(_get_secret_value("SERVER_DB_PORT")),
-            dbname=_get_secret_value("SERVER_DB_NAME"),
-            user=_get_secret_value("SERVER_DB_USER"),
-            password=_get_secret_value("SERVER_DB_PASS"),
+            host=_get_secret_value("SERVER_DB_HOST") or _get_secret_value("REALTIME_DB_HOST"),
+            port=int(_get_secret_value("SERVER_DB_PORT") or _get_secret_value("REALTIME_DB_PORT")),
+            dbname=_get_secret_value("SERVER_DB_NAME") or _get_secret_value("REALTIME_DB_NAME"),
+            user=_get_secret_value("SERVER_DB_USER") or _get_secret_value("REALTIME_DB_USER"),
+            password=_get_secret_value("SERVER_DB_PASS") or _get_secret_value("REALTIME_DB_PASS"),
             sslmode=_get_secret_value("SERVER_DB_SSLMODE", "require"),
         )
     except Exception as e:
@@ -158,70 +159,66 @@ def predict_with_models(row: pd.Series):
     spoil_days = float(spoil_model.predict(X)[0])
     return label, spoil_days
 
-# def render_llm_recommendation(jenis_makanan: str, spoil_info: str):
-#     key = _get_secret_value("GEMINI_API_KEY")
-#     if not key:
-#         st.info("Tambahkan GEMINI_API_KEY di secrets/.env untuk rekomendasi AI.")
-#         return
-#     try:
-#         genai.configure(api_key=key)
-#         prompt = (
-#             f"Makanan dengan jenis '{jenis_makanan}' telah dinyatakan busuk. {spoil_info} "
-#             "Berikan 2-3 ide singkat dan praktis untuk mengolahnya agar tidak menjadi sampah, "
-#             "misalnya dijadikan kompos atau pupuk organik cair. Jawaban harus dalam format daftar bernomor."
-#         )
-#         model = genai.GenerativeModel("gemini-1.5-flash")
-#         resp = model.generate_content(prompt)
-#         st.markdown(resp.text)
-#     except Exception as e:
-#         st.warning(f"Gagal mendapatkan rekomendasi AI: {e}")
-
 
 def fetch_recommendation_from_server(conn, realtime_id):
     """Fetch recommendation_text from kama_server by id. Returns string or None."""
     if conn is None:
         return None
     try:
-        # psycopg/psycopg2 may not accept numpy.int64; coerce to native Python types
-        if hasattr(realtime_id, 'item'):
-            try:
-                realtime_id = realtime_id.item()
-            except Exception:
-                pass
-        try:
-            realtime_id = int(realtime_id)
-        except Exception:
-            realtime_id = str(realtime_id)
-
-        with conn.cursor() as cur:
-            cur.execute(
-                "SELECT recommendation_text FROM kama_server WHERE id = %s ORDER BY recorded_at DESC LIMIT 1",
-                (realtime_id,)
-            )
-            row = cur.fetchone()
-            if row and row[0]:
-                return row[0]
+        if isinstance(realtime_id, (int, np.int64)):
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT recommendation_text FROM kama_server WHERE id = %s ORDER BY recorded_at DESC LIMIT 1",
+                    (realtime_id,)
+                )
+                row = cur.fetchone()
+                if row and row[0]:
+                    return row[0]
+        else:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT recommendation_text FROM kama_server WHERE id = %s ORDER BY recorded_at DESC LIMIT 1",
+                    (str(realtime_id),)
+                )
+                row = cur.fetchone()
+                if row and row[0]:
+                    return row[0]
     except Exception as e:
         st.warning(f"Gagal ambil rekomendasi dari server DB: {e}")
     return None
+
+def fetch_latest_prediction_and_reco(conn):
+    """Fetch the latest prediction and recommendation from kama_server."""
+    if conn is None:
+        return None, None, None
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT predicted_spoil, recommendation_text, recorded_at, status FROM kama_server ORDER BY recorded_at DESC LIMIT 1"
+            )
+            row = cur.fetchone()
+            if row:
+                return row[0], row[1], row[2], row[3]
+    except Exception as e:
+        st.warning(f"Gagal ambil prediksi & rekomendasi dari server DB: {e}")
+        return None, None, None, None
+
 
 # --- UI ---
 st.title("📦 KAMA Smartbox")
 st.markdown("Monitoring realtime makanan oleh KAMA Smartbox")
 
+# Use single connection function since both realtime and server point to the same DB
 realtime_conn = get_realtime_conn()
 server_conn = get_server_conn()
 
 # Auto-refresh 10 detik
 try:
     from streamlit_autorefresh import st_autorefresh
-    st_autorefresh(interval=120_000, key="kama_autorefresh")
+    # Refresh setiap 1 menit (60_000 ms) agar konsisten dengan scheduler
+    st_autorefresh(interval=60_000, key="kama_autorefresh")
 except Exception:
-    last_trigger = st.session_state.get('_last_refresh', 0)
-    now = time.time()
-    if now - last_trigger > 10:
-        st.session_state['_last_refresh'] = now
-        st.experimental_rerun()
+    pass
 
 latest = fetch_latest_data(realtime_conn, 1)
 if latest.empty:
@@ -234,20 +231,15 @@ else:
         st.metric("🌡️ Suhu", f"{row['temperature']:.1f} °C")
         st.metric("💧 Kelembapan", f"{row['humidity']:.1f} %")
         st.metric("💨 Gas Amonia", f"{row['gas_level']:.0f} ppm")
-    # Predict status and spoilage
-    try:
-        pred_label, pred_spoil_days = predict_with_models(row)
-    except Exception as e:
-        st.warning(f"Gagal prediksi model: {e}")
-        pred_label, pred_spoil_days = (str(row.get('status', 'unknown')).lower(), None)
 
     with col2:
-        label_cap = pred_label.capitalize()
-        if pred_label == "good":
+        status_db = str(row.get('status', 'unknown')).lower()
+        label_cap = status_db.capitalize()
+        if status_db == "good":
             st.success(f"✅ Status: {label_cap}")
-        elif pred_label == "warning":
+        elif status_db == "warning":
             st.warning(f"⚠️ Status: {label_cap}")
-        elif pred_label == "bad":
+        elif status_db == "bad":
             st.error(f"❌ Status: {label_cap}")
         else:
             st.info(f"ℹ️ Status: {label_cap}")
@@ -257,27 +249,28 @@ else:
         hist = fetch_history(realtime_conn, 500)
         if not hist.empty:
             hist['recorded_at'] = pd.to_datetime(hist['recorded_at'])
-            # Prediksi busuk
-            if pred_spoil_days is not None:
-                if pred_spoil_days < 0:
-                    txt = f"Busuk {abs(pred_spoil_days*24):.1f} jam yang lalu"
-                elif pred_spoil_days < 1:
-                    txt = f"Dalam {pred_spoil_days*24:.1f} jam"
-                else:
-                    txt = f"Dalam {pred_spoil_days:.1f} hari"
-                st.metric("⏳ Prediksi Busuk", txt)
+            
+            # Ambil prediksi & rekomendasi terbaru dari server
+            pred_spoil, rec_text, pred_timestamp, pred_status = fetch_latest_prediction_and_reco(server_conn)
 
-            # Rekomendasi: ambil dari tabel kama_server (recommendation_text) jika status 'bad'
-            if pred_label == 'bad':
-                jenis = row.get('jenis_makanan') or row.get('jenis') or 'buah-buahan'
-                # The row id in realtime should map to kama_server.id after ETL
-                realtime_id = row.get('id')
-                rec_text = fetch_recommendation_from_server(server_conn, realtime_id)
-                if rec_text:
-                    st.markdown("**Rekomendasi:**")
-                    st.markdown(rec_text)
+            # Tampilkan metrik prediksi
+            if pred_spoil is not None and pred_timestamp is not None:
+                delta = pd.Timestamp.now(tz='UTC') - pred_timestamp
+                hours = delta.total_seconds() / 3600
+                if pred_spoil < 0:
+                    txt = f"Busuk {abs(pred_spoil):.1f} hari yang lalu"
+                elif pred_spoil < 1:
+                    txt = f"Dalam {pred_spoil * 24:.1f} jam"
                 else:
-                    st.info("Rekomendasi belum tersedia di server. Tunggu proses prediksi atau jalankan ETL.")
+                    txt = f"Dalam {pred_spoil:.1f} hari"
+                st.metric("⏳ Prediksi Busuk", txt)
+            
+            # Tampilkan rekomendasi
+            if rec_text:
+                st.markdown("**Rekomendasi:**")
+                st.markdown(rec_text)
+            else:
+                st.info("Rekomendasi belum tersedia di server. Tunggu proses prediksi dari server.")
 
             # Grafik suhu & kelembapan
             try:
