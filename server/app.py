@@ -320,9 +320,8 @@ def latest_spoil_prediction():
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT predicted_spoil, recorded_at
-            FROM kama_server
-            WHERE predicted_spoil IS NOT NULL
+            SELECT * FROM kama_server
+            WHERE predicted_spoil IS NOT NULL OR recommendation_text IS NOT NULL
             ORDER BY recorded_at DESC
             LIMIT 1
             """
@@ -331,14 +330,17 @@ def latest_spoil_prediction():
         cur.close()
         conn.close()
         if result:
-            prediction, timestamp = result
-            return jsonify({
-                'latest_predicted_spoil': prediction,
-                'recorded_at': timestamp.isoformat()
-            })
+            # Dapatkan nama kolom dari kursor untuk membuat kamus (dictionary)
+            columns = [desc[0] for desc in cur.description]
+            data = dict(zip(columns, result))
+            
+            # Ubah data menjadi format JSON yang lebih rapi
+            if isinstance(data.get('recorded_at'), datetime):
+                data['recorded_at'] = data['recorded_at'].isoformat()
+            
+            return jsonify(data)
         else:
             return jsonify({
-                'latest_predicted_spoil': None,
                 'message': 'No prediction data found.'
             }), 404
     except Exception as e:
